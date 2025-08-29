@@ -1,0 +1,36 @@
+services:
+  ros2-moveit2:
+    container_name: ros2-moveit2
+    build:
+      context: .
+      dockerfile: ./docker/ros2-moveit2.dockerfile
+    environment:
+      - DISPLAY=$DISPLAY
+      - QT_X11_NO_MITSHM=1
+      - QT_DEBUG_PLUGINS=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - XAUTHORITY=/tmp/.docker.xauth
+    volumes:
+      - "${HOME}/.Xauthority:/root/.Xauthority:rw"
+      - "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+      - "/tmp/.docker.xauth:/tmp/.docker.xauth:rw" 
+      - "/dev/dri:/dev/dri"
+      - "./workspaces/moveit2_code/src:/root/ws_moveit/moveit2_code/src"
+    networks:
+      - ros2_humble_net
+    privileged: true
+    stdin_open: true
+    tty: true
+    command: sleep infinity
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  ros2_humble_net:
+    driver: bridge
+    name: ros2_humble_net

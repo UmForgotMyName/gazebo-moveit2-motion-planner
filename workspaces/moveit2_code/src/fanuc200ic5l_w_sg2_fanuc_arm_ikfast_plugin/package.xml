@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package format="3">
+  <name>fanuc200ic5l_w_sg2_fanuc_arm_ikfast_plugin</name>
+  <version>0.0.0</version>
+  <description>IKFast plugin for fanuc200ic5l_w_sg2</description>
+  <license>BSD</license>
+  <maintainer email="rsiddiqi@uoguelph.ca">Rehan Siddiqi</maintainer>
+
+  <!-- Build system -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Dependencies -->
+  <depend>tf2_eigen</depend>
+  <depend>roscpp</depend>
+  <depend>pluginlib</depend>
+  <depend>moveit_core</depend>
+  <depend>liblapack-dev</depend>
+  <depend>tf2_kdl</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <moveit_core plugin="${prefix}/fanuc200ic5l_w_sg2_fanuc_arm_moveit_ikfast_plugin_description.xml"/>
+  </export>
+</package>

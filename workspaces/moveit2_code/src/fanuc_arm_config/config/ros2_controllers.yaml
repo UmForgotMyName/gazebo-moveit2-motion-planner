@@ -1,0 +1,40 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50  # Hz - Stable update rate
+    use_sim_time: true
+
+    fanuc_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+joint_state_broadcaster:
+  ros__parameters:
+    use_sim_time: true
+
+fanuc_arm_controller:
+  ros__parameters:
+    use_sim_time: true
+    joints:
+      - joint_1
+      - joint_2
+      - joint_3
+      - joint_4
+      - joint_5
+      - joint_6
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true
+    allow_nonzero_velocity_at_trajectory_end: false
+    action_monitor_rate: 20.0  # Hz
+    interpolation_method: splines  # Fixed: was 'spline', should be 'splines'
+    goal_time: 0.0  # Allow unlimited time for trajectory completion
+    stopped_velocity_tolerance: 0.01  # rad/s
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.6  # Default goal time tolerance

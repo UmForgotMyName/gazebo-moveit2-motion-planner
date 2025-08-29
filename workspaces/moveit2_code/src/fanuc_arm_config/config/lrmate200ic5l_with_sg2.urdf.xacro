@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="lrmate200ic5l_with_sg2">
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <!-- System plugin library/class (defaults for Gazebo Sim) -->
+    <xacro:arg name="gz_control_lib" default="libgz_ros2_control-system.so" />
+    <xacro:arg name="gz_control_name" default="gz_ros2_control::GazeboSimROS2ControlPlugin" />
+    <!-- ros2_control hardware plugin (GZ Sim) -->
+    <xacro:arg name="hardware_plugin" default="gz_ros2_control/GazeboSimSystem" />
+
+    <!-- Add world link and joint to fix frame issues -->
+    <link name="world"/>
+    
+    <joint name="world_joint" type="fixed">
+        <parent link="world"/>
+        <child link="base_link"/>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <!-- Import lrmate200ic5l_with_sg2 urdf file -->
+    <xacro:include filename="$(find fanuc_arm_config)/urdf/fanuc200ic5l_w_sg2.urdf" />
+
+    <!-- Import control_xacro -->
+    <xacro:include filename="lrmate200ic5l_with_sg2.ros2_control.xacro" />
+
+    <!-- Add gazebo-specific joint configurations -->
+    <gazebo reference="joint_1">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+    <gazebo reference="joint_2">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+    <gazebo reference="joint_3">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+    <gazebo reference="joint_4">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+    <gazebo reference="joint_5">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+    <gazebo reference="joint_6">
+        <implicitSpringDamper>true</implicitSpringDamper>
+    </gazebo>
+
+    <xacro:lrmate200ic5l_with_sg2_ros2_control
+        name="lrmate200ic5l_hardware"
+        initial_positions_file="$(arg initial_positions_file)"
+        hardware_plugin="$(arg hardware_plugin)"/>
+
+    <!-- Gazebo Sim system plugin for ros2_control -->
+    <gazebo>
+        <plugin name="$(arg gz_control_name)" filename="$(arg gz_control_lib)">
+            <parameters>$(find fanuc_arm_config)/config/ros2_controllers.yaml</parameters>
+            <robot_param>robot_description</robot_param>
+            <robot_param_node>robot_state_publisher</robot_param_node>
+        </plugin>
+    </gazebo>
+
+</robot>
