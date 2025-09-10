@@ -38,28 +38,6 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Num.msg"
-  "msg/CartStatus.msg"
-  "msg/HomeOffset.msg"
-  "srv/PosePlan.srv"
-  "srv/PlanPath.srv"
-  "srv/SetRdo.srv"
-  "srv/StopTask.srv"
-  "srv/SimpleIK.srv"
-  "srv/ComplexIK.srv"
-  "srv/TransformPosition.srv"
-  "srv/TransformPose.srv"
-  "srv/GetTransform.srv"
-  "srv/GetIntrinsics.srv"
-  "srv/DetectTomatoes.srv"
-  "srv/SelectTomato.srv"
-  "srv/SaveImage.srv"
-  "srv/Harvest.srv"
-  "srv/ClusterTomatoes.srv"
-  "srv/PlanToPose.srv"
-  "action/CartControl.action"
-  "action/RobotPose.action"
-  "action/RobotJoints.action"
-  "action/RobotJointsPath.action"
   DEPENDENCIES geometry_msgs sensor_msgs
  )
 

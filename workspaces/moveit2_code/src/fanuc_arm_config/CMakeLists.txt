@@ -8,6 +8,7 @@ ament_package()
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/launch/moveit-rviz.launch.py
   ${CMAKE_CURRENT_SOURCE_DIR}/launch/gazebo_moveit_integration.launch.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/launch/gazebo_moveit_octomap.launch.py
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
@@ -22,4 +23,3 @@ install(DIRECTORY urdf/meshes/
 
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY worlds DESTINATION share/${PROJECT_NAME})
-install(FILES .setup_assistant DESTINATION share/${PROJECT_NAME})
