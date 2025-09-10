@@ -2,6 +2,7 @@
 
 ISSUES:
 - trying to get gpu to work in container as thats the only way to get the sensor stuff to work otherwise i get opengl issues
+   - could be because of ogre2 renderer use ogre1 instead?
 
 ## Overview
 This project implements a complete robotic manipulation system using ROS2 Humble and MoveIt2, featuring a Fanuc LR Mate 200iC/5L industrial robot arm with SG2 gripper. The system provides full integration between MoveIt2 motion planning and Gazebo physics simulation, allowing for realistic robot behavior testing and development.

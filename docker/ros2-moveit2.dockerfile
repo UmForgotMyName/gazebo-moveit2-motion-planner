@@ -3,17 +3,24 @@ FROM moveit/moveit2:humble-humble-tutorial-source
 ENV ROS2_WORKSPACE=/root/ws_moveit
 ARG ROS_DISTRO=humble
 
-# Install GPU and graphics libraries first
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    # --- GPU and Graphics Libraries ---
-    libgl1-mesa-glx \
+    # --- GPU and Graphics Libraries (GLVND + Mesa utils) ---
+    libglvnd0 \
+    libgl1 \
+    libglx0 \
+    libxext6 \
+    libx11-6 \
+    libxkbcommon-x11-0 \
     libgl1-mesa-dri \
-    libglapi-mesa \
+    libegl1 \
+    libegl1-mesa \
     libglu1-mesa \
     mesa-utils \
     mesa-utils-extra \
-    libegl1-mesa \
+    # --- Your original extras (safe to keep) ---
+    libgl1-mesa-glx \
+    libglapi-mesa \
     libxrandr2 \
     libxss1 \
     libxcursor1 \
@@ -27,8 +34,6 @@ RUN apt-get update && \
     x11-xserver-utils \
     xauth \
     xvfb \
-    # --- NVIDIA Container Runtime (if needed) ---
-    libnvidia-gl-470 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && \
@@ -67,13 +72,13 @@ RUN apt-get update && \
     iputils-ping && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN rosdep update --rosdistro=$ROS_DISTRO && apt dist-upgrade
+# Keep rosdep metadata fresh; avoid dist-upgrade to prevent driver/lib drift
+RUN rosdep update --rosdistro=$ROS_DISTRO
 
-# Set up GPU and graphics environment
+# Env defaults (runtime will pass DISPLAY and GPU caps; keeping these is harmless)
 ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 ENV QT_X11_NO_MITSHM=1
-ENV DISPLAY=:0
 
 # Copy Moveit2 workspace files to the correct location
 COPY workspaces/moveit2_code $ROS2_WORKSPACE
@@ -81,16 +86,16 @@ COPY interfaces/robot_interfaces $ROS2_WORKSPACE/src/robot_interfaces
 
 WORKDIR $ROS2_WORKSPACE
 
-# STEP 2: build the rest after sourcing the install setup
-RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
-    . install/setup.bash && \
+# Build after sourcing ROS; guard install/setup.bash if it doesn't exist yet
+RUN /bin/bash -lc ". /opt/ros/${ROS_DISTRO}/setup.bash && \
+    if [ -f install/setup.bash ]; then . install/setup.bash; fi && \
     colcon build --packages-select fanuc_arm_config fanuc200ic5l_w_sg2_fanuc_arm_ikfast_plugin"
 
 # Ensure the workspace is sourced in bashrc
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc && \
-    echo "source $ROS2_WORKSPACE/install/setup.bash" >> /root/.bashrc
+    echo "if [ -f \"$ROS2_WORKSPACE/install/setup.bash\" ]; then source \"$ROS2_WORKSPACE/install/setup.bash\"; fi" >> /root/.bashrc
 
-# Ensure the entrypoint script sources the workspace
+# Ensure the entrypoint script sources the workspace if present
 RUN sed --in-place --expression \
         '$isource "$ROS2_WORKSPACE/install/setup.bash"' \
         /ros_entrypoint.sh
