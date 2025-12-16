@@ -3,6 +3,18 @@ FROM moveit/moveit2:humble-humble-tutorial-source
 ENV ROS2_WORKSPACE=/root/ws_moveit
 ARG ROS_DISTRO=humble
 
+# =============================================================================
+# WSL2 GPU FIX: Install Mesa 25 with d3d12 Gallium driver for OpenGL 4.6 support
+# This fixes Ogre2 rendering issues in WSL2/WSLg environments
+# Reference: https://github.com/gazebosim/gz-sim/issues/2502
+# =============================================================================
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository -y ppa:kisak/turtle && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     # --- GPU and Graphics Libraries (GLVND + Mesa utils) ---
@@ -64,6 +76,8 @@ RUN apt-get update && \
     ros-${ROS_DISTRO}-joint-state-broadcaster \
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
+    # --- Topic tools (for relay node) ---
+    ros-${ROS_DISTRO}-topic-tools \
     # --- Other Dependencies ---
     build-essential curl gnupg lsb-release git \
     python3-dev python3-distutils python3-pip \

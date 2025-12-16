@@ -9,25 +9,34 @@ services:
     runtime: nvidia
     network_mode: host
     environment:
+      # --- Display Configuration ---
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
+      - QT_QPA_PLATFORM=xcb
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      # --- WSL2 Mesa d3d12 GPU Rendering (fixes Ogre2/sensor issues) ---
+      # Reference: https://github.com/gazebosim/gz-sim/issues/2502
+      - GALLIUM_DRIVER=d3d12
+      - MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
+      # --- Keep NVIDIA capabilities for compute (CUDA, etc.) ---
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
-      - LIBGL_ALWAYS_INDIRECT=0
-      - QT_QPA_PLATFORM=xcb
-      - QT_OPENGL=desktop
-      - __GLX_VENDOR_LIBRARY_NAME=nvidia
-      - LIBGL_DRI3_DISABLE=1
-      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      # --- Removed conflicting variables (these interfere with d3d12 path): ---
+      # - __GLX_VENDOR_LIBRARY_NAME=nvidia  (forces native NVIDIA GLX, conflicts with Mesa)
+      # - LIBGL_DRI3_DISABLE=1              (disables DRI3, not needed with d3d12)
+      # - LIBGL_ALWAYS_INDIRECT=0           (not needed with d3d12)
+      # - QT_OPENGL=desktop                 (let Qt auto-detect)
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./workspaces/moveit2_code/src:/root/ws_moveit/src
     devices:
-      - /dev/nvidiactl
-      - /dev/nvidia0
-      - /dev/nvidia-uvm
-      - /dev/nvidia-modeset
+      # --- DRI device for Mesa d3d12 rendering ---
       - /dev/dri:/dev/dri
+      # --- NVIDIA devices (may not exist in WSL2, uncomment if on native Linux) ---
+      # - /dev/nvidiactl
+      # - /dev/nvidia0
+      # - /dev/nvidia-uvm
+      # - /dev/nvidia-modeset
     command: sleep infinity
     stdin_open: true
     tty: true

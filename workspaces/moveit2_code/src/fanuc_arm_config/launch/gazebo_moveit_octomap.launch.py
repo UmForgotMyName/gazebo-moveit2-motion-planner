@@ -58,12 +58,12 @@ def generate_launch_description():
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .sensors_3d(file_path="config/sensors_3d.yaml")
         .planning_scene_monitor(
-            publish_robot_description=True, 
+            publish_robot_description=True,
             publish_robot_description_semantic=True,
             publish_planning_scene=True,
             publish_geometry_updates=True,
             publish_state_updates=True,
-            publish_transforms_updates=True
+            publish_transforms_updates=True,
         )
         .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
@@ -90,10 +90,7 @@ def generate_launch_description():
 
     # Joint State Publisher (basic - no GUI needed for simulation)
     joint_state_publisher_node = Node(
-        package="joint_state_publisher", 
-        executable="joint_state_publisher", 
-        name="joint_state_publisher", 
-        parameters=[{"use_sim_time": use_sim_time}]
+        package="joint_state_publisher", executable="joint_state_publisher", name="joint_state_publisher", parameters=[{"use_sim_time": use_sim_time}]
     )
 
     # Get world file path
@@ -104,7 +101,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]),
         launch_arguments={
             "gz_args": f"-r -v 2 {world_file}",  # Start unpaused with verbose level 2, with GUI
-            "headless": "false"
+            "headless": "false",
         }.items(),
     )
 
@@ -116,18 +113,38 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Camera bridge - Bridge the D405 camera topics from Gazebo to ROS2
+    # Camera bridge - Bridge the D405 RGBD camera topics from Gazebo to ROS2
+    # Topic structure for rgbd_camera sensor type:
+    #   /d405/image         - RGB image
+    #   /d405/depth_image   - Depth image
+    #   /d405/points        - Point cloud (PointCloud2)
+    #   /d405/camera_info   - Camera info
     camera_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         arguments=[
-            "/d405/color/image_raw@sensor_msgs/msg/Image@gz.msgs.Image",
-            "/d405/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image",
-            "/d405/depth/color/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
-            "/d405/color/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
+            # RGB Image
+            "/d405/image@sensor_msgs/msg/Image@gz.msgs.Image",
+            # Depth Image
+            "/d405/depth_image@sensor_msgs/msg/Image@gz.msgs.Image",
+            # Point Cloud (for octomap)
+            "/d405/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
+            # Camera Info
+            "/d405/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
         ],
         output="screen",
         parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    # Remap point cloud topic for octomap compatibility
+    # Gazebo publishes to /d405/points, but sensors_3d.yaml expects /d405/depth/color/points
+    pointcloud_relay = Node(
+        package="topic_tools",
+        executable="relay",
+        name="pointcloud_relay",
+        arguments=["/d405/points", "/d405/depth/color/points"],
+        parameters=[{"use_sim_time": use_sim_time}],
+        output="screen",
     )
 
     # Spawn entity into Gazebo
@@ -181,10 +198,7 @@ def generate_launch_description():
         package="octomap_server",
         executable="octomap_server_node",
         name="octomap_server",
-        parameters=[
-            {"use_sim_time": use_sim_time},
-            os.path.join(pkg_share_dir, "config", "octomap_server.yaml")
-        ],
+        parameters=[{"use_sim_time": use_sim_time}, os.path.join(pkg_share_dir, "config", "octomap_server.yaml")],
         remappings=[
             ("cloud_in", "/d405/depth/color/points"),
         ],
@@ -292,6 +306,7 @@ def generate_launch_description():
             gazebo,
             clock_bridge,
             camera_bridge,
+            pointcloud_relay,
             # Event-driven sequence
             delayed_spawn_entity,
             delayed_load_joint_state_broadcaster,
