@@ -111,16 +111,19 @@ def generate_launch_description():
     # Get world file path
     world_file = os.path.join(pkg_share_dir, "worlds", "octomap_demo_world.sdf")
 
-    # Gazebo server with controller parameters (with GUI enabled)
+    # Gazebo server with controller parameters
+    # ros_gz_sim is built from source for Harmonic compatibility
+    # WSL2 compatibility: Force OpenGL backend and set verbose level
+    # Note: Depth camera sensors may have limited functionality on WSL2 d3d12
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]),
         launch_arguments={
-            "gz_args": f"-r -v 2 {world_file}",  # Start unpaused with verbose level 2, with GUI
-            "headless": "false",
+            "gz_args": f"-r -v 4 --render-engine-server ogre2 --render-engine-gui ogre2 {world_file}",
         }.items(),
     )
 
     # Clock bridge
+    # ros_gz_bridge is built from source for Harmonic compatibility
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
@@ -134,6 +137,7 @@ def generate_launch_description():
     #   /d405/depth_image   - Depth image
     #   /d405/points        - Point cloud (PointCloud2)
     #   /d405/camera_info   - Camera info
+    # ros_gz_bridge is built from source for Harmonic compatibility
     camera_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
@@ -163,6 +167,7 @@ def generate_launch_description():
     )
 
     # Spawn entity into Gazebo
+    # ros_gz_sim is built from source for Harmonic compatibility
     gz_spawn_entity = Node(
         package="ros_gz_sim",
         executable="create",

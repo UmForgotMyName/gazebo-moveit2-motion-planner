@@ -15,7 +15,6 @@
     <xacro:arg name="hardware_plugin" default="gz_ros2_control/GazeboSimSystem" />
     
     <!-- Sensors system plugin (Harmonic naming) -->
-    <xacro:arg name="gz_sensors_lib" default="gz-sim-sensors-system" />
 
     <!-- Add world link and joint to fix frame issues -->
     <link name="world"/>
@@ -106,12 +105,8 @@
         </sensor>
     </gazebo>
 
-    <!-- Sensors system plugin - Harmonic with ogre-next fix allows ogre2 -->
-    <gazebo>
-        <plugin name="gz::sim::systems::Sensors" filename="$(arg gz_sensors_lib)">
-            <render_engine>ogre2</render_engine>
-            <background_color>0.8 0.8 0.8</background_color>
-        </plugin>
-    </gazebo>
+    <!-- NOTE: Sensors system plugin is defined in the world file, NOT here -->
+    <!-- Having it in both places causes duplicate scene node errors with Ogre1 -->
+    <!-- World file uses: <render_engine>ogre</render_engine> for WSL2 d3d12 compatibility -->
 
 </robot>

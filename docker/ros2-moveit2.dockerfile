@@ -4,10 +4,7 @@ ENV ROS2_WORKSPACE=/root/ws_moveit
 ARG ROS_DISTRO=humble
 
 # =============================================================================
-# ROS2 Humble + MoveIt2 + Gazebo Harmonic (Clean Build)
-# =============================================================================
-# Base: ros:humble-ros-base (minimal - NO Gazebo, NO ros-gz)
-# Gazebo: Harmonic from OSRF (has ogre-next fix for Mesa d3d12)
+# ROS2 Humble + MoveIt2 + Gazebo Harmonic
 # =============================================================================
 
 # =============================================================================
@@ -21,18 +18,44 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 2: Install Gazebo Harmonic + ROS2 bridge (from OSRF repo)
+# STAGE 2: Graphics libraries + Mesa upgrade FIRST (before Qt5-dependent packages)
+# =============================================================================
+# This avoids the package conflict where Mesa upgrade removes Qt5 packages
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libglvnd0 libgl1 libglx0 libxext6 libx11-6 libxkbcommon-x11-0 \
+    libegl1 libglu1-mesa mesa-utils mesa-utils-extra \
+    libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 \
+    x11-apps x11-utils x11-xserver-utils xauth \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Pin Mesa packages to kisak-turtle PPA for WSL2 d3d12 compatibility
+RUN printf 'Package: *mesa* *libgl* *libegl* *libgbm* *libglapi*\nPin: release o=LP-PPA-kisak-turtle\nPin-Priority: 1001\n' > /etc/apt/preferences.d/mesa-kisak
+
+RUN apt-get update && \
+    apt-get install -y --allow-downgrades \
+    mesa-libgallium=25.0.7~kisak3~j \
+    libglx-mesa0=25.0.7~kisak3~j \
+    libgl1-mesa-dri=25.0.7~kisak3~j \
+    libegl-mesa0=25.0.7~kisak3~j \
+    libgbm1=25.0.7~kisak3~j \
+    mesa-va-drivers=25.0.7~kisak3~j \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN ls -la /usr/lib/x86_64-linux-gnu/dri/d3d12* && echo "d3d12 driver installed"
+
+# =============================================================================
+# STAGE 3: Install Gazebo Harmonic (now installed AFTER Mesa upgrade)
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gz-harmonic \
     libgz-sim8-dev \
-    ros-humble-ros-gzharmonic \
-    ros-humble-ros-gzharmonic-sim \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 3: Install MoveIt2, RViz2, and ROS2 packages
+# STAGE 4: Install MoveIt2, RViz2, and ROS2 packages (AFTER Mesa upgrade)
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -57,13 +80,15 @@ RUN apt-get update && \
     build-essential git python3-colcon-common-extensions iputils-ping \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+## No LIBGL_DRI3_DISABLE is set; DRI3 is enabled by default for best compatibility with WSLg/Wayland.
 # =============================================================================
-# STAGE 4: Build gz_ros2_control for Harmonic (BEFORE Mesa upgrade)
+# STAGE 5: Build ros_gz AND gz_ros2_control for Harmonic
 # =============================================================================
 ENV GZ_VERSION=harmonic
 
 RUN mkdir -p /root/gz_ros2_control_ws/src && \
     cd /root/gz_ros2_control_ws/src && \
+    git clone https://github.com/gazebosim/ros_gz.git -b humble && \
     git clone https://github.com/ros-controls/gz_ros2_control.git -b humble
 
 WORKDIR /root/gz_ros2_control_ws
@@ -78,42 +103,7 @@ RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
     colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release"
 
 # =============================================================================
-# STAGE 5: Graphics libraries
-# =============================================================================
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libglvnd0 libgl1 libglx0 libxext6 libx11-6 libxkbcommon-x11-0 \
-    libgl1-mesa-dri libegl1 libegl1-mesa libglu1-mesa mesa-utils \
-    mesa-utils-extra libgl1-mesa-glx libxrandr2 libxss1 libxcursor1 \
-    libxcomposite1 libasound2 libxi6 libxtst6 \
-    x11-apps x11-utils x11-xserver-utils xauth \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# =============================================================================
-# STAGE 6: Upgrade Mesa to 25.x for d3d12 WSL2 support
-# =============================================================================
-RUN apt-get update && \
-    apt-get remove -y --allow-change-held-packages \
-    libegl1-mesa-dev libgl1-mesa-dev mesa-vdpau-drivers mesa-vulkan-drivers libglu1-mesa-dev || true && \
-    apt-mark unhold libglapi-mesa || true && \
-    apt-get remove -y libglapi-mesa || true
-
-RUN printf 'Package: *mesa* *libgl* *libegl* *libgbm* *libglapi*\nPin: release o=LP-PPA-kisak-turtle\nPin-Priority: 1001\n' > /etc/apt/preferences.d/mesa-kisak
-
-RUN apt-get update && \
-    apt-get install -y --allow-downgrades \
-    mesa-libgallium=25.0.7~kisak3~j \
-    libglx-mesa0=25.0.7~kisak3~j \
-    libgl1-mesa-dri=25.0.7~kisak3~j \
-    libegl-mesa0=25.0.7~kisak3~j \
-    libgbm1=25.0.7~kisak3~j \
-    mesa-va-drivers=25.0.7~kisak3~j \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN ls -la /usr/lib/x86_64-linux-gnu/dri/d3d12* && echo "d3d12 driver installed"
-
-# =============================================================================
-# STAGE 7: Workspace setup
+# STAGE 6: Workspace setup
 # =============================================================================
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
@@ -133,5 +123,5 @@ RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc && \
     echo "source $ROS2_WORKSPACE/install/setup.bash" >> /root/.bashrc && \
     echo "export GZ_VERSION=harmonic" >> /root/.bashrc
 
-ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/$ROS_DISTRO/setup.bash && source /root/gz_ros2_control_ws/install/setup.bash && source $ROS2_WORKSPACE/install/setup.bash && export GZ_VERSION=harmonic && exec \"$@\"", "--"]
+ENTRYPOINT ["/usr/local/bin/container_entrypoint.sh"]
 CMD ["bash"]

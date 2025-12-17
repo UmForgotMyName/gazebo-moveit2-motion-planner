@@ -5,10 +5,13 @@ services:
       context: .
       dockerfile: ./docker/ros2-moveit2.dockerfile
     environment:
+      - __GLX_VENDOR_LIBRARY_NAME=mesa
+      - QT_QPA_PLATFORM=xcb
       # Display (WSLg)
       - DISPLAY=:0
-      - WAYLAND_DISPLAY=wayland-0
-      - XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir
+      # Prefer Wayland or let Qt auto-select
+      # - QT_QPA_PLATFORM=wayland
+      # (Uncomment above or leave unset for auto)
       - PULSE_SERVER=/mnt/wslg/PulseServer
       - QT_X11_NO_MITSHM=1
       # Gazebo Harmonic
@@ -18,14 +21,14 @@ services:
       - MESA_LOADER_DRIVER_OVERRIDE=d3d12
       - MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
       - LIBGL_ALWAYS_SOFTWARE=0
-      - LIBGL_DRI3_DISABLE=1
       - LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
       - LD_LIBRARY_PATH=/usr/lib/wsl/lib
       - mesa_glthread=false
-      - MESA_NO_ERROR=1
       # GPU
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
+      # XDG_RUNTIME_DIR for WSLg/Wayland
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
     volumes:
       - /mnt/wslg/.X11-unix:/tmp/.X11-unix:rw
       - /mnt/wslg:/mnt/wslg:rw
@@ -45,6 +48,7 @@ services:
     stdin_open: true
     tty: true
     command: sleep infinity
+    entrypoint: ["/bin/bash", "-c", "mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root && exec \"$@\"", "--"]
     networks:
       - ros2_net
 

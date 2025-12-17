@@ -103,6 +103,7 @@ def generate_launch_description():
     world_file = os.path.join(pkg_share_dir, "worlds", "empty_no_gravity.sdf")
 
     # Gazebo server with controller parameters
+    # ros_gz_sim is built from source for Harmonic compatibility
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]),
         launch_arguments={
@@ -111,6 +112,7 @@ def generate_launch_description():
     )
 
     # Clock bridge
+    # ros_gz_bridge is built from source for Harmonic compatibility
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
@@ -119,6 +121,7 @@ def generate_launch_description():
     )
 
     # Spawn entity into Gazebo
+    # ros_gz_sim is built from source for Harmonic compatibility
     gz_spawn_entity = Node(
         package="ros_gz_sim",
         executable="create",

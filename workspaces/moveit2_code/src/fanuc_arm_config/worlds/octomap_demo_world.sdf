@@ -26,7 +26,8 @@
       name="gz::sim::systems::SceneBroadcaster">
     </plugin>
     
-    <!-- Sensors System - Harmonic has ogre-next fix, can use ogre2 safely -->
+    <!-- Sensors System - Use ogre2 with headless-rendering for depth cameras on WSL2 -->
+    <!-- The headless-rendering flag uses EGL/OSMesa for offscreen sensor rendering -->
     <plugin
       filename="gz-sim-sensors-system"
       name="gz::sim::systems::Sensors">
