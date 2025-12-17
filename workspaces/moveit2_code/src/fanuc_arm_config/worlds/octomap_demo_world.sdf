@@ -18,7 +18,10 @@
     <plugin
       filename="gz-sim-sensors-system"
       name="gz::sim::systems::Sensors">
-      <render_engine>ogre2</render_engine>
+      <!-- Use ogre instead of ogre2 for sensor rendering -->
+      <!-- ogre2 crashes on Mesa d3d12 in WSL2/Docker due to GL buffer issues -->
+      <!-- Reference: https://robotics.stackexchange.com/questions/114967 -->
+      <render_engine>ogre</render_engine>
     </plugin>
 
     <!-- Gravity -->

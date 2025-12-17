@@ -99,10 +99,12 @@
     </gazebo>
 
     <!-- Add global sensors system plugin with hardware rendering -->
-    <!-- Uses ogre2 for depth camera support (required for point clouds) -->
+    <!-- Use ogre (NOT ogre2) for sensor rendering to avoid Mesa d3d12 crashes -->
+    <!-- ogre2 crashes on Mesa d3d12 in WSL2/Docker due to GL buffer issues -->
+    <!-- Reference: https://robotics.stackexchange.com/questions/114967 -->
     <gazebo>
         <plugin name="gz::sim::systems::Sensors" filename="$(arg gz_camera_lib)">
-            <render_engine>ogre2</render_engine>
+            <render_engine>ogre</render_engine>
             <background_color>0.8 0.8 0.8</background_color>
         </plugin>
     </gazebo>
