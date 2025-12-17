@@ -1,13 +1,21 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="lrmate200ic5l_with_sg2">
+    <!-- =======================================================================
+         GAZEBO HARMONIC COMPATIBLE URDF
+         Uses gz-sim8 plugin naming and ogre2 (with ogre-next fix)
+    ======================================================================= -->
+    
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
-    <!-- System plugin library/class (defaults for Gazebo Sim) -->
-    <xacro:arg name="gz_control_lib" default="libgz_ros2_control-system.so" />
+    
+    <!-- Gazebo Harmonic system plugin library/class -->
+    <xacro:arg name="gz_control_lib" default="gz_ros2_control-system" />
     <xacro:arg name="gz_control_name" default="gz_ros2_control::GazeboSimROS2ControlPlugin" />
+    
     <!-- ros2_control hardware plugin (GZ Sim) -->
     <xacro:arg name="hardware_plugin" default="gz_ros2_control/GazeboSimSystem" />
-    <!-- Camera sensor plugin library -->
-    <xacro:arg name="gz_camera_lib" default="libgz_sim_systems.so" />
+    
+    <!-- Sensors system plugin (Harmonic naming) -->
+    <xacro:arg name="gz_sensors_lib" default="gz-sim-sensors-system" />
 
     <!-- Add world link and joint to fix frame issues -->
     <link name="world"/>
@@ -49,7 +57,7 @@
         initial_positions_file="$(arg initial_positions_file)"
         hardware_plugin="$(arg hardware_plugin)"/>
 
-    <!-- Gazebo Sim system plugin for ros2_control -->
+    <!-- Gazebo Sim system plugin for ros2_control (Harmonic compatible) -->
     <gazebo>
         <plugin name="$(arg gz_control_name)" filename="$(arg gz_control_lib)">
             <parameters>$(find fanuc_arm_config)/config/ros2_controllers.yaml</parameters>
@@ -59,7 +67,7 @@
     </gazebo>
 
     <!-- D405 Depth Camera Gazebo Plugin (Intel RealSense D405) -->
-    <!-- Reference: https://github.com/gazebosim/gz-sim/issues/2502 -->
+    <!-- Harmonic has ogre-next fix - can use ogre2 safely for sensors -->
     <gazebo reference="tool_d405_camera">
         <sensor name="d405_depth_camera" type="rgbd_camera">
             <update_rate>30</update_rate>
@@ -98,13 +106,10 @@
         </sensor>
     </gazebo>
 
-    <!-- Add global sensors system plugin with hardware rendering -->
-    <!-- Use ogre (NOT ogre2) for sensor rendering to avoid Mesa d3d12 crashes -->
-    <!-- ogre2 crashes on Mesa d3d12 in WSL2/Docker due to GL buffer issues -->
-    <!-- Reference: https://robotics.stackexchange.com/questions/114967 -->
+    <!-- Sensors system plugin - Harmonic with ogre-next fix allows ogre2 -->
     <gazebo>
-        <plugin name="gz::sim::systems::Sensors" filename="$(arg gz_camera_lib)">
-            <render_engine>ogre</render_engine>
+        <plugin name="gz::sim::systems::Sensors" filename="$(arg gz_sensors_lib)">
+            <render_engine>ogre2</render_engine>
             <background_color>0.8 0.8 0.8</background_color>
         </plugin>
     </gazebo>

@@ -9,8 +9,6 @@ services:
     environment:
       # =============================================================================
       # Display Configuration for Docker Desktop on WSL2
-      # Docker Desktop uses paths under /run/desktop/mnt/host/wslg/
-      # Reference: https://stackoverflow.com/questions/73092750
       # =============================================================================
       - DISPLAY=:0
       - WAYLAND_DISPLAY=wayland-0
@@ -18,47 +16,27 @@ services:
       - PULSE_SERVER=/mnt/wslg/PulseServer
       - QT_X11_NO_MITSHM=1
       # =============================================================================
-      # WSL2 GPU via Mesa d3d12 driver
-      # STRATEGY: Use container's Mesa 25 from kisak PPA (NOT WSL's Mesa)
-      # This provides OpenGL 4.6 on d3d12 needed for Gazebo Fortress + Ogre2
-      # Reference: https://github.com/gazebosim/gz-sim/issues/2502
-      #            https://github.com/gazebosim/gz-sim/issues/2595
+      # Gazebo Harmonic Configuration
+      # Harmonic has the ogre-next fix that resolves Mesa d3d12 rendering issues
       # =============================================================================
-      # CRITICAL: Force Mesa to use d3d12 Gallium driver (not llvmpipe)
+      - GZ_VERSION=harmonic
+      # =============================================================================
+      # WSL2 GPU via Mesa d3d12 driver
+      # =============================================================================
       - GALLIUM_DRIVER=d3d12
       - MESA_LOADER_DRIVER_OVERRIDE=d3d12
       - MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
       - LIBGL_ALWAYS_SOFTWARE=0
-      # Disable DRI3 - causes issues with d3d12 in WSL2
       - LIBGL_DRI3_DISABLE=1
-      # Force indirect GLX to work around context creation issues
       - LIBGL_ALWAYS_INDIRECT=0
-      # Tell Mesa where to find DRI drivers
       - LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
-      # Add WSL libs to library path for libd3d12.so, libdxcore.so
       - LD_LIBRARY_PATH=/usr/lib/wsl/lib
       # =============================================================================
-      # Mesa d3d12 + Ogre2 Stability Workarounds
-      # These help prevent crashes in Ogre2's GL3Plus backend on Mesa d3d12
+      # Mesa d3d12 Stability Settings
+      # With Harmonic's ogre-next fix, fewer workarounds are needed
       # =============================================================================
-      # Disable threaded GL (can cause race conditions with d3d12)
       - mesa_glthread=false
-      # Disable GL error checking (minor perf boost, avoids some edge cases)
       - MESA_NO_ERROR=1
-      # Force GL 4.5 for better Ogre2 compatibility
-      - MESA_GL_VERSION_OVERRIDE=4.5
-      - MESA_GLSL_VERSION_OVERRIDE=450
-      # =============================================================================
-      # Ogre2 + Mesa d3d12 Workarounds
-      # These fix crashes in Ogre2's GL3Plus buffer management on Mesa d3d12
-      # Reference: https://robotics.stackexchange.com/questions/114967
-      # =============================================================================
-      # Disable persistent buffer mapping (causes segfaults on Mesa d3d12)
-      - OGRE_FORCE_DISABLE_PERSISTENT_MAP=1
-      # Disable buffer storage extension (alternative approach)
-      - MESA_EXTENSION_OVERRIDE=-GL_ARB_buffer_storage -GL_ARB_multi_draw_indirect
-      # Use compatibility profile for better stability
-      - MESA_GL_CONTEXT_PROFILE=compatibility
       # =============================================================================
       # NVIDIA GPU capabilities
       # =============================================================================
@@ -67,14 +45,11 @@ services:
     volumes:
       # =============================================================================
       # WSLg Display Paths
-      # When running docker from Ubuntu WSL (with Docker Desktop WSL Integration),
-      # use the native /mnt/wslg paths, NOT /run/desktop/mnt/host/wslg
       # =============================================================================
       - /mnt/wslg/.X11-unix:/tmp/.X11-unix:rw
       - /mnt/wslg:/mnt/wslg:rw
       # =============================================================================
       # WSL GPU Libraries - REQUIRED for d3d12 driver to work
-      # This provides libd3d12.so, libdxcore.so needed by Mesa d3d12
       # =============================================================================
       - /usr/lib/wsl:/usr/lib/wsl:ro
       # --- Your source code (for live editing) ---
@@ -84,11 +59,6 @@ services:
       - /dev/dxg:/dev/dxg
       # --- DRI render devices ---
       - /dev/dri:/dev/dri
-    # =============================================================================
-    # GPU Resources - Docker Desktop style
-    # NOTE: deploy.resources is typically ignored in non-Swarm mode, but we keep it
-    # for compatibility. The actual GPU access comes from /dev/dxg + Mesa d3d12.
-    # =============================================================================
     deploy:
       resources:
         reservations:

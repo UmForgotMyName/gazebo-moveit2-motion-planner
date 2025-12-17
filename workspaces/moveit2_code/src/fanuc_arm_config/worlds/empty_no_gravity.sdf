@@ -1,7 +1,13 @@
 <?xml version="1.0" ?>
-<sdf version="1.6">
+<sdf version="1.9">
   <world name="empty">
-    <!-- Reduced gravity to minimize self-collision while maintaining contact -->
+    
+    <!-- =======================================================================
+         GAZEBO HARMONIC EMPTY WORLD (No Gravity)
+         Uses gz-sim8 plugin naming convention
+    ======================================================================= -->
+    
+    <!-- Zero gravity for robot arm manipulation -->
     <gravity>0 0 0</gravity>
 
     <physics name="1ms" type="ode">
@@ -10,10 +16,11 @@
       <real_time_update_rate>100</real_time_update_rate>
     </physics>
 
-    <plugin filename="ignition-gazebo-physics-system" name="gz::sim::systems::Physics"/>
-    <plugin filename="ignition-gazebo-user-commands-system" name="gz::sim::systems::UserCommands"/>
-    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-    <plugin filename="ignition-gazebo-contact-system" name="gz::sim::systems::Contact"/>
+    <!-- Harmonic plugin naming -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
 
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>

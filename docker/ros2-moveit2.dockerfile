@@ -4,18 +4,22 @@ ENV ROS2_WORKSPACE=/root/ws_moveit
 ARG ROS_DISTRO=humble
 
 # =============================================================================
-# STAGE 1: Mesa 25 with d3d12 Gallium driver for WSL2/Docker Desktop GPU support
-# 
-# WHY THIS IS NEEDED (from GitHub issue =#2502):
-# - Gazebo Fortress + Ogre2 + WSLg has known rendering issues
-# - The ogre-next fix was backported to Garden/Harmonic, NOT Fortress
-# - Workaround: Update Mesa to 25.x which has full OpenGL 4.6 on d3d12
-# - This avoids needing the ogre-next patch
+# GAZEBO HARMONIC MIGRATION
+# =============================================================================
+# WHY HARMONIC (gz-sim 8.x)?
+# - Has the ogre-next fix backported that resolves Mesa d3d12 rendering crashes
+# - Reference: https://github.com/gazebosim/gz-sim/issues/2502
+# - Harmonic is the newest LTS (supported until 2028)
+# - Includes improved sensor rendering stability
 #
-# References:
-#   https://github.com/gazebosim/gz-sim/issues/2502
-#   https://github.com/gazebosim/gz-sim/issues/2595
-#   Mesa 24.0+ achieved OpenGL 4.6 on d3d12: https://docs.mesa3d.org/relnotes/24.0.0.html
+# ARCHITECTURE:
+# 1. Remove ros-humble-ros-gz (which installs Gazebo Fortress)
+# 2. Install Gazebo Harmonic from OSRF packages
+# 3. Build ros_gz from source (for Humble + Harmonic compatibility)
+# =============================================================================
+
+# =============================================================================
+# STAGE 1: Mesa 25 with d3d12 Gallium driver for WSL2/Docker Desktop GPU support
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
@@ -23,17 +27,24 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 2: Install all ROS2/Gazebo/MoveIt2 packages
+# STAGE 1b: Remove any pre-installed Gazebo Fortress packages from base image
+# The base MoveIt2 image may have ros-gz (Fortress) - we need Harmonic instead
+# =============================================================================
+RUN apt-get update && \
+    apt-get remove -y --purge \
+    ros-${ROS_DISTRO}-ros-gz* \
+    ros-${ROS_DISTRO}-gz-* \
+    gz-fortress* \
+    libgz-* \
+    || true && \
+    apt-get autoremove -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# STAGE 2: Install base ROS2/MoveIt2 packages (WITHOUT ros-gz)
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    # --- Gazebo Sim (ros_gz) - COMPLETE PACKAGE SET ---
-    ros-${ROS_DISTRO}-ros-gz \
-    ros-${ROS_DISTRO}-ros-gz-sim \
-    ros-${ROS_DISTRO}-ros-gz-bridge \
-    ros-${ROS_DISTRO}-ros-gz-image \
-    ros-${ROS_DISTRO}-ros-gz-interfaces \
-    ros-${ROS_DISTRO}-gz-ros2-control \
     # --- MoveIt 2 ---
     ros-${ROS_DISTRO}-moveit \
     ros-${ROS_DISTRO}-moveit-ros-visualization \
@@ -58,7 +69,7 @@ RUN apt-get update && \
     # --- Topic tools (for relay node in octomap pipeline) ---
     ros-${ROS_DISTRO}-topic-tools \
     # --- Build/Dev Dependencies ---
-    build-essential curl gnupg lsb-release git \
+    build-essential curl gnupg lsb-release git wget \
     python3-dev python3-distutils python3-pip \
     python3-rosdep python3-colcon-common-extensions \
     python3-colcon-mixin python3-vcstool \
@@ -66,7 +77,19 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 3: Graphics/Display Libraries
+# STAGE 3: Install Gazebo Harmonic from OSRF packages
+# Reference: https://gazebosim.org/docs/harmonic/install_ubuntu
+# =============================================================================
+RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gz-harmonic \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# STAGE 4: Graphics/Display Libraries
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -99,10 +122,8 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 4: Upgrade Mesa to version 25.x from kisak PPA for d3d12 support
-# This MUST happen AFTER all other package installs
+# STAGE 5: Upgrade Mesa to version 25.x from kisak PPA for d3d12 support
 # =============================================================================
-# Remove packages that pin old Mesa versions
 RUN apt-get update && \
     apt-get remove -y --allow-change-held-packages \
     libegl1-mesa-dev \
@@ -112,14 +133,11 @@ RUN apt-get update && \
     libglu1-mesa-dev \
     || true
 
-# Remove old libglapi-mesa
 RUN apt-mark unhold libglapi-mesa || true && \
     apt-get remove -y libglapi-mesa || true
 
-# Pin kisak PPA for Mesa packages
 RUN printf 'Package: *mesa* *libgl* *libegl* *libgbm* *libglapi*\nPin: release o=LP-PPA-kisak-turtle\nPin-Priority: 1001\n' > /etc/apt/preferences.d/mesa-kisak
 
-# Install Mesa 25.x (libglapi-mesa is virtual, provided by mesa-libgallium)
 RUN apt-get update && \
     apt-get install -y --allow-downgrades \
     mesa-libgallium=25.0.7~kisak3~j \
@@ -134,21 +152,57 @@ RUN apt-get update && \
 RUN ls -la /usr/lib/x86_64-linux-gnu/dri/d3d12* && echo "d3d12 driver found!" || echo "Warning: d3d12 driver not found"
 
 # =============================================================================
-# STAGE 4b: Reinstall ros-gz packages AFTER Mesa upgrade
-# This ensures the Gazebo rendering libraries link against the new Mesa
+# STAGE 6: Build ros_gz for ROS2 Humble + Gazebo Harmonic from source
+# Reference: https://github.com/gazebosim/ros_gz/tree/humble
 # =============================================================================
+ENV GZ_VERSION=harmonic
+
+# Create ros_gz workspace
+RUN mkdir -p /root/ros_gz_ws/src
+
+WORKDIR /root/ros_gz_ws/src
+
+# Clone ros_gz for Humble (supports Harmonic via GZ_VERSION)
+RUN git clone https://github.com/gazebosim/ros_gz.git -b humble
+
+# Install dependencies
+WORKDIR /root/ros_gz_ws
 RUN apt-get update && \
-    apt-get install -y --reinstall --no-install-recommends \
-    ros-${ROS_DISTRO}-ros-gz \
-    ros-${ROS_DISTRO}-ros-gz-sim \
-    ros-${ROS_DISTRO}-ros-gz-bridge \
-    ros-${ROS_DISTRO}-ros-gz-image \
-    ros-${ROS_DISTRO}-ros-gz-interfaces \
-    ros-${ROS_DISTRO}-gz-ros2-control \
+    rosdep update --rosdistro=$ROS_DISTRO && \
+    rosdep install -r --from-paths src -i -y --rosdistro ${ROS_DISTRO} \
+    --skip-keys="gz-cmake3 gz-common5 gz-fuel-tools9 gz-gui8 gz-math7 gz-msgs10 gz-physics7 gz-plugin2 gz-rendering8 gz-sensors8 gz-sim8 gz-tools2 gz-transport13 gz-utils2" \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Build ros_gz
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
+    export GZ_VERSION=harmonic && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release"
+
 # =============================================================================
-# STAGE 5: Workspace Setup
+# STAGE 7: Build gz_ros2_control for Harmonic from source
+# =============================================================================
+RUN mkdir -p /root/gz_ros2_control_ws/src
+
+WORKDIR /root/gz_ros2_control_ws/src
+
+# Clone gz_ros2_control (humble branch supports Harmonic)
+RUN git clone https://github.com/ros-controls/gz_ros2_control.git -b humble
+
+WORKDIR /root/gz_ros2_control_ws
+
+# Install dependencies and build
+RUN apt-get update && \
+    rosdep install -r --from-paths src -i -y --rosdistro ${ROS_DISTRO} \
+    --skip-keys="gz-cmake3 gz-common5 gz-fuel-tools9 gz-gui8 gz-math7 gz-msgs10 gz-physics7 gz-plugin2 gz-rendering8 gz-sensors8 gz-sim8 gz-tools2 gz-transport13 gz-utils2" \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
+    . /root/ros_gz_ws/install/setup.bash && \
+    export GZ_VERSION=harmonic && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release"
+
+# =============================================================================
+# STAGE 8: Workspace Setup
 # =============================================================================
 RUN rosdep update --rosdistro=$ROS_DISTRO
 
@@ -156,18 +210,7 @@ RUN rosdep update --rosdistro=$ROS_DISTRO
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 ENV QT_X11_NO_MITSHM=1
-
-# =============================================================================
-# Mesa d3d12 + Ogre2 Workarounds for WSL2
-# These help stabilize Ogre2 rendering on Mesa d3d12
-# =============================================================================
-# Use threaded GL for better stability
-ENV mesa_glthread=false
-# Disable problematic features
-ENV MESA_NO_ERROR=1
-# Force specific GL version for Ogre2 compatibility
-ENV MESA_GL_VERSION_OVERRIDE=4.5
-ENV MESA_GLSL_VERSION_OVERRIDE=450
+ENV GZ_VERSION=harmonic
 
 # Copy workspace files
 COPY workspaces/moveit2_code $ROS2_WORKSPACE
@@ -177,14 +220,19 @@ WORKDIR $ROS2_WORKSPACE
 
 # Build workspace packages
 RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
+    . /root/ros_gz_ws/install/setup.bash && \
+    . /root/gz_ros2_control_ws/install/setup.bash && \
     if [ -f install/setup.bash ]; then . install/setup.bash; fi && \
     colcon build --packages-select fanuc_arm_config fanuc200ic5l_w_sg2_fanuc_arm_ikfast_plugin"
 
-# Source workspace in bashrc
+# Source all workspaces in bashrc
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc && \
-    echo "if [ -f \"$ROS2_WORKSPACE/install/setup.bash\" ]; then source \"$ROS2_WORKSPACE/install/setup.bash\"; fi" >> /root/.bashrc
+    echo "source /root/ros_gz_ws/install/setup.bash" >> /root/.bashrc && \
+    echo "source /root/gz_ros2_control_ws/install/setup.bash" >> /root/.bashrc && \
+    echo "if [ -f \"$ROS2_WORKSPACE/install/setup.bash\" ]; then source \"$ROS2_WORKSPACE/install/setup.bash\"; fi" >> /root/.bashrc && \
+    echo "export GZ_VERSION=harmonic" >> /root/.bashrc
 
-# Source workspace in entrypoint
+# Update entrypoint to source all workspaces
 RUN sed --in-place --expression \
-        '$isource "$ROS2_WORKSPACE/install/setup.bash"' \
+        '$isource "/root/ros_gz_ws/install/setup.bash"\nsource "/root/gz_ros2_control_ws/install/setup.bash"\nsource "$ROS2_WORKSPACE/install/setup.bash"\nexport GZ_VERSION=harmonic' \
         /ros_entrypoint.sh

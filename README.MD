@@ -1,19 +1,23 @@
-# ROS2 MoveIt2 Fanuc Robot Simulation with Gazebo Integration
-
-ISSUES:
-- trying to get gpu to work in container as thats the only way to get the sensor stuff to work otherwise i get opengl issues
-   - could be because of ogre2 renderer use ogre1 instead?
+# ROS2 MoveIt2 Fanuc Robot Simulation with Gazebo Harmonic
 
 ## Overview
-This project implements a complete robotic manipulation system using ROS2 Humble and MoveIt2, featuring a Fanuc LR Mate 200iC/5L industrial robot arm with SG2 gripper. The system provides full integration between MoveIt2 motion planning and Gazebo physics simulation, allowing for realistic robot behavior testing and development.
+This project implements a complete robotic manipulation system using ROS2 Humble and MoveIt2, featuring a Fanuc LR Mate 200iC/5L industrial robot arm with SG2 gripper. The system provides full integration between MoveIt2 motion planning and **Gazebo Harmonic** physics simulation, allowing for realistic robot behavior testing and development.
+
+### Why Gazebo Harmonic?
+- **ogre-next fix**: Harmonic includes the ogre-next rendering fix that resolves Mesa d3d12 crashes on WSL2/Docker Desktop
+- **Latest LTS**: Supported until 2028, providing long-term stability
+- **Improved sensors**: Better camera/depth sensor rendering stability
+- **Reference**: [GitHub Issue #2502](https://github.com/gazebosim/gz-sim/issues/2502)
 
 ## Key Features
 - **Complete MoveIt2 Integration**: Full motion planning capabilities with OMPL planners
-- **Gazebo Physics Simulation**: Real-time robot simulation with proper joint control
+- **Gazebo Harmonic Simulation**: Real-time robot simulation with ogre-next rendering fix
 - **IKFast Inverse Kinematics**: High-performance analytical IK solver
 - **ros2_control Integration**: Seamless communication between MoveIt2 and Gazebo controllers
+- **D405 RGBD Camera**: Intel RealSense depth camera for octomap generation
+- **Octomap Integration**: 3D occupancy mapping for obstacle avoidance
 - **Interactive Motion Planning**: RViz2-based interface for trajectory planning and execution
-- **Docker-based Development**: Containerized environment for consistent deployment
+- **Docker-based Development**: Containerized environment with WSL2 GPU support (Mesa d3d12)
 
 ## Getting Started
 
@@ -23,22 +27,25 @@ Want to see the robot in action immediately? Follow these two simple steps:
 ```bash
 # Clone the repository and navigate to it
 git clone <repository-url>
-cd ros2-moveit2
+cd gazebo-moveit2-motion-planner
 
-# Enable X11 forwarding for GUI applications
+# Enable X11 forwarding for GUI applications (from WSL2 Ubuntu)
 xhost +local:docker
 
-# Build and start the Docker container
-docker compose up --build
+# Build and start the Docker container (this takes a while on first build)
+docker compose up --build -d
 ```
 
 ### 2. Launch the Robot Simulation
 ```bash
-# In a new terminal, run the main launch file
-docker exec -it ros2-moveit2 bash -c "
-source /opt/ros/humble/setup.bash && 
-source /root/ws_moveit/install/setup.bash && 
-ros2 launch fanuc_arm_config gazebo_moveit_integration.launch.py"
+# Enter the container
+docker exec -it ros2-moveit2 bash
+
+# Inside container: Launch basic MoveIt2 + Gazebo integration
+ros2 launch fanuc_arm_config gazebo_moveit_integration.launch.py
+
+# OR: Launch with camera and octomap
+ros2 launch fanuc_arm_config gazebo_moveit_octomap.launch.py
 ```
 
 **That's it!** You should now see Gazebo with the robot simulation and RViz2 with the motion planning interface. You can drag the interactive markers to plan and execute robot movements.
@@ -48,27 +55,33 @@ ros2 launch fanuc_arm_config gazebo_moveit_integration.launch.py"
 ### Core Components
 - **fanuc_arm_config**: Robot configuration package containing URDF, SRDF, and MoveIt2 config files
 - **fanuc200ic5l_w_sg2_fanuc_arm_ikfast_plugin**: Custom IKFast-generated inverse kinematics plugin
-- **hello_moveit**: Example code and important reference files
 
 ### Key Technologies
 - **ROS2 Humble**: Latest LTS version of ROS2
 - **MoveIt2**: Advanced motion planning framework
-- **Gazebo Garden**: Physics simulation with ros2_control integration
+- **Gazebo Harmonic (gz-sim 8.x)**: Physics simulation with ogre-next rendering fix
 - **OMPL**: Open Motion Planning Library for path planning
 - **IKFast**: Analytical inverse kinematics solver
+- **Octomap**: 3D occupancy mapping from point clouds
 
 ## Prerequisites
 
 ### System Requirements
-- Linux (Ubuntu 22.04 recommended)
-- Docker and Docker Compose
-- X11 forwarding support
-- At least 4GB RAM and 2GB disk space
-- Optional: NVIDIA GPU (configured but not required - CPU-only operation is fully supported)
+- **Windows 11** with WSL2 + Docker Desktop (WSL Integration enabled)
+- Ubuntu 22.04 WSL2 distribution
+- Docker Desktop with WSL Integration
+- NVIDIA GPU (RTX series recommended) with driver 580+
+- At least 8GB RAM and 20GB disk space
+
+### GPU Requirements (WSL2 + Docker Desktop)
+The system uses Mesa d3d12 driver for GPU acceleration:
+- NVIDIA GPU with DirectX 12 support
+- WSL2 with `/dev/dxg` device available
+- Docker Desktop with WSL Integration enabled
 
 ### Setup X11 Forwarding (Required)
 ```bash
-# Enable X11 forwarding for Docker containers
+# From WSL2 Ubuntu terminal (NOT PowerShell):
 xhost +local:docker
 ```
 
@@ -89,13 +102,20 @@ xhost +local:docker
 - **Collision Avoidance**: The planner automatically avoids self-collisions
 - **Smooth Trajectories**: Movements follow smooth, dynamically-feasible paths
 
+### Verify GPU Acceleration
+```bash
+# Inside the container:
+glxinfo -B
+# Should show: "Device: D3D12 (NVIDIA GeForce RTX ...)"
+```
+
 ### Monitoring Robot State
 ```bash
 # Check joint states (should show real positions, not all zeros)
-docker exec -it ros2-moveit2 bash -c "source /opt/ros/humble/setup.bash && ros2 topic echo /joint_states --once"
+docker exec -it ros2-moveit2 bash -c "ros2 topic echo /joint_states --once"
 
 # Monitor controller status
-docker exec -it ros2-moveit2 bash -c "source /opt/ros/humble/setup.bash && ros2 control list_controllers"
+docker exec -it ros2-moveit2 bash -c "ros2 control list_controllers"
 
 # View available action servers
 docker exec -it ros2-moveit2 bash -c "source /opt/ros/humble/setup.bash && ros2 action list"

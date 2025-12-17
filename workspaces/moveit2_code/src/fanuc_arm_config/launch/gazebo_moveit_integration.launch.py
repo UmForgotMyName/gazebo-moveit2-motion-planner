@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+"""
+Gazebo Harmonic + MoveIt2 Integration Launch File
+
+This launch file starts:
+1. Gazebo Harmonic simulation (empty world with no gravity)
+2. Robot with ros2_control
+3. MoveIt2 for motion planning
+4. RViz2 visualization
+
+Harmonic has the ogre-next fix that resolves Mesa d3d12 rendering issues.
+"""
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -26,6 +38,7 @@ def generate_launch_description():
     initial_positions_file = os.path.join(pkg_share_dir, "config", "initial_positions.yaml")
 
     # Build robot_description by running xacro
+    # Using Gazebo Harmonic plugin naming (gz-sim8)
     robot_description_cmd = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -37,13 +50,14 @@ def generate_launch_description():
             "initial_positions_file:=",
             initial_positions_file,
             " ",
-            "gz_control_lib:=libgz_ros2_control-system.so",
+            # Harmonic uses simplified plugin names without lib prefix and .so suffix
+            "gz_control_lib:=gz_ros2_control-system",
             " ",
             "gz_control_name:=gz_ros2_control::GazeboSimROS2ControlPlugin",
             " ",
             "hardware_plugin:=gz_ros2_control/GazeboSimSystem",
             " ",
-            "gz_camera_lib:=libignition-gazebo-sensors-system.so",
+            "gz_sensors_lib:=gz-sim-sensors-system",
         ]
     )
     robot_description = {"robot_description": ParameterValue(robot_description_cmd, value_type=str)}

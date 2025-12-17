@@ -1,33 +1,39 @@
 <?xml version="1.0" ?>
-<sdf version="1.6">
+<sdf version="1.9">
   <world name="basic_world">
+    
+    <!-- =======================================================================
+         GAZEBO HARMONIC BASIC WORLD
+         Uses gz-sim8 plugin naming convention
+    ======================================================================= -->
+    
     <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
     
-    <!-- Plugin to broadcast world simulation time -->
+    <!-- IMU System -->
     <plugin
-      filename="libignition-gazebo-imu-system.so"
-      name="ignition::gazebo::systems::Imu">
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
     </plugin>
     
-    <!-- Plugin for physics -->
+    <!-- Physics System -->
     <plugin
-      filename="libignition-gazebo-physics-system.so"
-      name="ignition::gazebo::systems::Physics">
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
     </plugin>
     
-    <!-- Plugin for user commands -->
+    <!-- User Commands -->
     <plugin
-      filename="libignition-gazebo-user-commands-system.so"
-      name="ignition::gazebo::systems::UserCommands">
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
     </plugin>
     
-    <!-- Plugin for scene broadcasts -->
+    <!-- Scene Broadcaster -->
     <plugin
-      filename="libignition-gazebo-scene-broadcaster-system.so"
-      name="ignition::gazebo::systems::SceneBroadcaster">
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
     </plugin>
     
     <!-- Lighting -->
@@ -40,10 +46,10 @@
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
     </include>
     
-    <!-- Simple gravity -->
+    <!-- Gravity -->
     <gravity>0 0 -9.8</gravity>
     
-    <!-- Atmosphere model -->
+    <!-- Atmosphere -->
     <atmosphere type="adiabatic"/>
     
     <!-- Wind -->
