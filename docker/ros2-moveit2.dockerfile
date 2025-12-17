@@ -28,6 +28,7 @@ RUN apt-get update && \
     gz-harmonic \
     libgz-sim8-dev \
     ros-humble-ros-gzharmonic \
+    ros-humble-ros-gzharmonic-sim \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
