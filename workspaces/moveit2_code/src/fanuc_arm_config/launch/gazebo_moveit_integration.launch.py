@@ -104,7 +104,7 @@ def generate_launch_description():
 
     # Gazebo server with controller parameters
     gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]),
+        PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gzharmonic_sim"), "launch", "gz_sim.launch.py"])]),
         launch_arguments={
             "gz_args": f"-r -v 2 {world_file}"  # Start unpaused with verbose level 2
         }.items(),
@@ -112,7 +112,7 @@ def generate_launch_description():
 
     # Clock bridge
     clock_bridge = Node(
-        package="ros_gz_bridge",
+        package="ros_gzharmonic_bridge",
         executable="parameter_bridge",
         arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
         output="screen",
@@ -120,7 +120,7 @@ def generate_launch_description():
 
     # Spawn entity into Gazebo
     gz_spawn_entity = Node(
-        package="ros_gz_sim",
+        package="ros_gzharmonic_sim",
         executable="create",
         output="screen",
         arguments=[

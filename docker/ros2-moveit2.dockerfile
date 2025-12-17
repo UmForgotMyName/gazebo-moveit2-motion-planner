@@ -1,12 +1,12 @@
-FROM osrf/ros:humble-desktop-full
+FROM ros:humble-ros-base
 
 ENV ROS2_WORKSPACE=/root/ws_moveit
 ARG ROS_DISTRO=humble
 
 # =============================================================================
-# ROS2 Humble + MoveIt2 + Gazebo Harmonic
+# ROS2 Humble + MoveIt2 + Gazebo Harmonic (Clean Build)
 # =============================================================================
-# Base: osrf/ros:humble-desktop-full (clean - no Gazebo pre-installed)
+# Base: ros:humble-ros-base (minimal - NO Gazebo, NO ros-gz)
 # Gazebo: Harmonic from OSRF (has ogre-next fix for Mesa d3d12)
 # =============================================================================
 
@@ -14,24 +14,28 @@ ARG ROS_DISTRO=humble
 # STAGE 1: Add repositories
 # =============================================================================
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common wget && \
+    apt-get install -y --no-install-recommends software-properties-common wget lsb-release gnupg && \
     add-apt-repository -y ppa:kisak/turtle && \
     wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 2: Install Gazebo Harmonic + ROS2 bridge
-# =============================================================================
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ros-humble-ros-gzharmonic && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# =============================================================================
-# STAGE 3: Install MoveIt2 and ROS2 packages
+# STAGE 2: Install Gazebo Harmonic + ROS2 bridge (from OSRF repo)
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    gz-harmonic \
+    libgz-sim8-dev \
+    ros-humble-ros-gzharmonic \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# STAGE 3: Install MoveIt2, RViz2, and ROS2 packages
+# =============================================================================
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-rviz2 \
     ros-${ROS_DISTRO}-moveit \
     ros-${ROS_DISTRO}-moveit-ros-visualization \
     ros-${ROS_DISTRO}-moveit-ros-perception \
@@ -53,7 +57,27 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 4: Graphics libraries
+# STAGE 4: Build gz_ros2_control for Harmonic (BEFORE Mesa upgrade)
+# =============================================================================
+ENV GZ_VERSION=harmonic
+
+RUN mkdir -p /root/gz_ros2_control_ws/src && \
+    cd /root/gz_ros2_control_ws/src && \
+    git clone https://github.com/ros-controls/gz_ros2_control.git -b humble
+
+WORKDIR /root/gz_ros2_control_ws
+RUN apt-get update && \
+    rosdep update --rosdistro=$ROS_DISTRO && \
+    rosdep install -r --from-paths src -i -y --rosdistro ${ROS_DISTRO} \
+    --skip-keys="gz-cmake3 gz-common5 gz-fuel-tools9 gz-gui8 gz-math7 gz-msgs10 gz-physics7 gz-plugin2 gz-rendering8 gz-sensors8 gz-sim8 gz-tools2 gz-transport13 gz-utils2 ros-humble-ros-gz ros-humble-ros-gz-bridge ros-humble-ros-gz-sim ros-humble-ros-gz-image ros_gz ros_gz_bridge ros_gz_sim ros_gz_image" \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
+    export GZ_VERSION=harmonic && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release"
+
+# =============================================================================
+# STAGE 5: Graphics libraries
 # =============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -65,7 +89,7 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# STAGE 5: Upgrade Mesa to 25.x for d3d12 WSL2 support
+# STAGE 6: Upgrade Mesa to 25.x for d3d12 WSL2 support
 # =============================================================================
 RUN apt-get update && \
     apt-get remove -y --allow-change-held-packages \
@@ -86,26 +110,6 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN ls -la /usr/lib/x86_64-linux-gnu/dri/d3d12* && echo "d3d12 driver installed"
-
-# =============================================================================
-# STAGE 6: Build gz_ros2_control for Harmonic
-# =============================================================================
-ENV GZ_VERSION=harmonic
-
-RUN mkdir -p /root/gz_ros2_control_ws/src && \
-    cd /root/gz_ros2_control_ws/src && \
-    git clone https://github.com/ros-controls/gz_ros2_control.git -b humble
-
-WORKDIR /root/gz_ros2_control_ws
-RUN apt-get update && \
-    rosdep update --rosdistro=$ROS_DISTRO && \
-    rosdep install -r --from-paths src -i -y --rosdistro ${ROS_DISTRO} \
-    --skip-keys="gz-cmake3 gz-common5 gz-fuel-tools9 gz-gui8 gz-math7 gz-msgs10 gz-physics7 gz-plugin2 gz-rendering8 gz-sensors8 gz-sim8 gz-tools2 gz-transport13 gz-utils2" \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
-    export GZ_VERSION=harmonic && \
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release"
 
 # =============================================================================
 # STAGE 7: Workspace setup
