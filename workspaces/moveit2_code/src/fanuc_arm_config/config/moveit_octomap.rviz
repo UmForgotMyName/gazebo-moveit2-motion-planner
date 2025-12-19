@@ -100,7 +100,7 @@ Visualization Manager:
       Name: Perception - D405 RGB Image
       Enabled: false
       Value: false
-      Image Topic: /d405/rgb/image_raw
+      Image Topic: /d405/image
       Transport Hint: raw
       Queue Size: 2
       Normalize Range: true

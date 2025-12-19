@@ -25,11 +25,12 @@
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
     </joint>
 
-    <!-- Import lrmate200ic5l_with_sg2 urdf file -->
-    <xacro:include filename="$(find fanuc_arm_config)/urdf/fanuc200ic5l_w_sg2.urdf" />
-
-    <!-- Import control_xacro -->
+    <!-- Import base robot macros and ros2_control -->
+    <xacro:include filename="$(find fanuc_arm_config)/urdf/fanuc200ic5l_w_sg2.xacro" />
     <xacro:include filename="lrmate200ic5l_with_sg2.ros2_control.xacro" />
+
+    <!-- Insert base robot (links/joints) -->
+    <xacro:fanuc200ic5l_w_sg2_description/>
 
     <!-- Add gazebo-specific joint configurations -->
     <gazebo reference="joint_1">

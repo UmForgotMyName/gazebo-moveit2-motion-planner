@@ -67,20 +67,20 @@
     <!-- Obstacle Box 1 (Red) -->
     <!-- Moved closer in front of robot and made taller -->
     <model name="obstacle_box_1">
-      <pose>1.5 0.0 0.45 0 0 0</pose>
+      <pose>1 0.0 0.45 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.25 0.25 0.9</size>
+              <size>0.25 0.25 1.5</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.25 0.25 0.9</size>
+              <size>0.25 0.25 1.5</size>
             </box>
           </geometry>
           <material>
@@ -95,20 +95,20 @@
     <!-- Obstacle Box 2 (Green) -->
     <!-- Kept near Box 1 so both are in camera view at startup, made taller -->
     <model name="obstacle_box_2">
-      <pose>1.5 0.35 0.40 0 0 0</pose>
+      <pose>1 0.35 0.40 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.22 0.22 0.8</size>
+              <size>0.22 0.22 1.5</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.22 0.22 0.8</size>
+              <size>0.22 0.22 1.5</size>
             </box>
           </geometry>
           <material>
@@ -123,14 +123,14 @@
     <!-- Obstacle Cylinder (Blue) -->
     <!-- Moved near the boxes so it is also likely to be in view -->
     <model name="obstacle_cylinder">
-      <pose>1.5 -0.25 0.40 0 0 0</pose>
+      <pose>1 -0.25 0.40 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
               <radius>0.12</radius>
-              <length>0.8</length>
+              <length>1.5</length>
             </cylinder>
           </geometry>
         </collision>
@@ -138,12 +138,91 @@
           <geometry>
             <cylinder>
               <radius>0.12</radius>
-              <length>0.8</length>
+              <length>1.5</length>
             </cylinder>
           </geometry>
           <material>
             <ambient>0 0 1 1</ambient>
             <diffuse>0 0 1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Additional obstacles to form a near-continuous wall in front of the robot -->
+    <model name="obstacle_box_3">
+      <pose>1 0.70 0.45 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.3 0.3 1</ambient>
+            <diffuse>0.8 0.3 0.3 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_box_4">
+      <pose>1 -0.60 0.45 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.8 0.3 1</ambient>
+            <diffuse>0.3 0.8 0.3 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_box_5">
+      <pose>1 -0.95 0.45 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.25 0.25 1.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.8 1</ambient>
+            <diffuse>0.3 0.3 0.8 1</diffuse>
             <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>

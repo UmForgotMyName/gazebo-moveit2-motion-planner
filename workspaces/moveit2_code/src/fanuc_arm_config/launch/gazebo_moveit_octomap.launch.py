@@ -27,6 +27,10 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def generate_launch_description():
+    # Keep RMW consistent (Fast DDS) because rviz2 throws Fast CDR / typesupport
+    # errors when mixed with other RMWs for large PointCloud2 messages.
+    rmw_impl = LaunchConfiguration("rmw_implementation", default="rmw_fastrtps_cpp")
+
     use_sim_time = LaunchConfiguration("use_sim_time", default="true")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
 
@@ -128,7 +132,8 @@ def generate_launch_description():
         package="ros_gz_bridge",
         executable="parameter_bridge",
         arguments=[
-            "/d405/rgb/image_raw@sensor_msgs/msg/Image@gz.msgs.Image",
+            # Gazebo publishes RGB on d405/image (not /d405/rgb/image_raw)
+            "/d405/image@sensor_msgs/msg/Image@gz.msgs.Image",
             "/d405/depth_image@sensor_msgs/msg/Image@gz.msgs.Image",
             "/d405/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
             "/d405/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
@@ -191,7 +196,7 @@ def generate_launch_description():
         ],
     )
 
-    rviz_config = PathJoinSubstitution([FindPackageShare("fanuc_arm_config"), "config", "moveit_octomap.rviz"])
+    rviz_config = PathJoinSubstitution([FindPackageShare("fanuc_arm_config"), "config", "moveit.rviz"])
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
@@ -238,6 +243,7 @@ def generate_launch_description():
             DeclareLaunchArgument("robot_name", default_value="fanuc_arm"),
             DeclareLaunchArgument("octomap_frame", default_value="world"),
             DeclareLaunchArgument("publish_world_tf", default_value="true"),
+            DeclareLaunchArgument("rmw_implementation", default_value="rmw_fastrtps_cpp"),
             SetEnvironmentVariable(name="QT_QPA_PLATFORM", value="xcb"),
             SetEnvironmentVariable(name="WAYLAND_DISPLAY", value=""),
             SetEnvironmentVariable(
@@ -258,6 +264,8 @@ def generate_launch_description():
                     EnvironmentVariable("LD_LIBRARY_PATH", default_value=""),
                 ],
             ),
+            # Force all nodes (rviz2, ros_gz_bridge, move_group) onto the same RMW.
+            SetEnvironmentVariable(name="RMW_IMPLEMENTATION", value=rmw_impl),
             robot_state_publisher_node,
             world_to_base_tf,
             gazebo,

@@ -109,6 +109,7 @@ RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 ENV QT_X11_NO_MITSHM=1
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 COPY workspaces/moveit2_code $ROS2_WORKSPACE
 COPY interfaces/robot_interfaces $ROS2_WORKSPACE/src/robot_interfaces
@@ -122,7 +123,8 @@ RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.bash && \
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc && \
     echo "source /root/gz_ros2_control_ws/install/setup.bash" >> /root/.bashrc && \
     echo "source $ROS2_WORKSPACE/install/setup.bash" >> /root/.bashrc && \
-    echo "export GZ_VERSION=harmonic" >> /root/.bashrc
+    echo "export GZ_VERSION=harmonic" >> /root/.bashrc && \
+    echo "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> /root/.bashrc
 
 ENTRYPOINT ["/usr/local/bin/container_entrypoint.sh"]
 CMD ["bash"]

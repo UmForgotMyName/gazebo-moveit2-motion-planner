@@ -12,9 +12,10 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-# Install only the canonical URDF and meshes
+# Install URDF/xacro and meshes
 install(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/urdf/fanuc200ic5l_w_sg2.urdf
+  ${CMAKE_CURRENT_SOURCE_DIR}/urdf/fanuc200ic5l_w_sg2.xacro
   DESTINATION share/${PROJECT_NAME}/urdf
 )
 install(DIRECTORY urdf/meshes/
