@@ -1,33 +1,32 @@
 <?xml version="1.0" ?>
 <sdf version="1.9">
   <world name="octomap_demo_world">
-    
+
     <!-- =======================================================================
          GAZEBO HARMONIC WORLD FILE
          Harmonic uses gz-sim8 plugins with ogre-next rendering fix
          Reference: https://gazebosim.org/docs/harmonic/migration
     ======================================================================= -->
-    
+
     <!-- Physics System -->
     <plugin
       filename="gz-sim-physics-system"
       name="gz::sim::systems::Physics">
     </plugin>
-    
+
     <!-- User Commands (for GUI interaction) -->
     <plugin
       filename="gz-sim-user-commands-system"
       name="gz::sim::systems::UserCommands">
     </plugin>
-    
+
     <!-- Scene Broadcaster (publishes scene state) -->
     <plugin
       filename="gz-sim-scene-broadcaster-system"
       name="gz::sim::systems::SceneBroadcaster">
     </plugin>
-    
-    <!-- Sensors System - Use ogre2 with headless-rendering for depth cameras on WSL2 -->
-    <!-- The headless-rendering flag uses EGL/OSMesa for offscreen sensor rendering -->
+
+    <!-- Sensors System -->
     <plugin
       filename="gz-sim-sensors-system"
       name="gz::sim::systems::Sensors">
@@ -66,21 +65,22 @@
     </model>
 
     <!-- Obstacle Box 1 (Red) -->
+    <!-- Moved closer in front of robot and made taller -->
     <model name="obstacle_box_1">
-      <pose>0.5 0.3 0.25 0 0 0</pose>
+      <pose>1.5 0.0 0.45 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.2 0.2 0.5</size>
+              <size>0.25 0.25 0.9</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.2 0.2 0.5</size>
+              <size>0.25 0.25 0.9</size>
             </box>
           </geometry>
           <material>
@@ -93,21 +93,22 @@
     </model>
 
     <!-- Obstacle Box 2 (Green) -->
+    <!-- Kept near Box 1 so both are in camera view at startup, made taller -->
     <model name="obstacle_box_2">
-      <pose>-0.3 0.5 0.15 0 0 0</pose>
+      <pose>1.5 0.35 0.40 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.15 0.15 0.3</size>
+              <size>0.22 0.22 0.8</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.15 0.15 0.3</size>
+              <size>0.22 0.22 0.8</size>
             </box>
           </geometry>
           <material>
@@ -120,23 +121,24 @@
     </model>
 
     <!-- Obstacle Cylinder (Blue) -->
+    <!-- Moved near the boxes so it is also likely to be in view -->
     <model name="obstacle_cylinder">
-      <pose>0.7 -0.4 0.2 0 0 0</pose>
+      <pose>1.5 -0.25 0.40 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.1</radius>
-              <length>0.4</length>
+              <radius>0.12</radius>
+              <length>0.8</length>
             </cylinder>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.1</radius>
-              <length>0.4</length>
+              <radius>0.12</radius>
+              <length>0.8</length>
             </cylinder>
           </geometry>
           <material>

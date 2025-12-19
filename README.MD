@@ -79,11 +79,21 @@ The system uses Mesa d3d12 driver for GPU acceleration:
 - WSL2 with `/dev/dxg` device available
 - Docker Desktop with WSL Integration enabled
 
-### Setup X11 Forwarding (Required)
+### Setup Display for WSLg (Wayland-first)
 ```bash
 # From WSL2 Ubuntu terminal (NOT PowerShell):
 xhost +local:docker
 ```
+WSLg provides a Wayland compositor; the compose file is set for Wayland-first (`WAYLAND_DISPLAY=wayland-0`, `XDG_RUNTIME_DIR=/run/user/0`, `QT_QPA_PLATFORM=wayland`) with Xwayland fallback via `DISPLAY=:0`. This aligns with Microsoft’s WSLg guidance and matches community fixes for RViz “failed to create drawable” on WSLg when GLX-only is used.
+
+If you see `Could not find the Qt platform plugin "wayland"` from Gazebo or RViz, ensure the `qtwayland5` runtime is installed (added in the Dockerfile) so the Qt Wayland platform plugin is available.
+
+If Qt complains about runtime directory permissions, check inside the container:
+```bash
+ls -ld /run/user/0
+ls -l /run/user/0/wayland-0
+```
+The entrypoint now creates `/run/user/0` (0700) and symlinks the WSLg socket (`/mnt/wslg/runtime-dir/wayland-0`) there so Qt/Wayland accepts it. When exporting `QT_QPA_PLATFORM` manually, quote a fallback if you use one: `export QT_QPA_PLATFORM='wayland;xcb'`.
 
 ## Quick Start
 
@@ -108,6 +118,8 @@ xhost +local:docker
 glxinfo -B
 # Should show: "Device: D3D12 (NVIDIA GeForce RTX ...)"
 ```
+# If GLX fails, force software once to confirm it is a driver path issue:
+# LIBGL_ALWAYS_SOFTWARE=1 rviz2 -d /root/ws_moveit/install/fanuc_arm_config/share/fanuc_arm_config/config/moveit_octomap.rviz
 
 ### Monitoring Robot State
 ```bash
@@ -120,6 +132,11 @@ docker exec -it ros2-moveit2 bash -c "ros2 control list_controllers"
 # View available action servers
 docker exec -it ros2-moveit2 bash -c "source /opt/ros/humble/setup.bash && ros2 action list"
 ```
+
+### References
+- Microsoft WSLg GUI apps guidance (Wayland-first, host sockets in `/mnt/wslg`): https://learn.microsoft.com/windows/wsl/tutorials/gui-apps
+- WSLg README (Wayland compositor, GLX routed through Xwayland): https://github.com/microsoft/wslg#applications
+- ROS Answers threads on RViz “failed to create drawable” under WSLg recommend Wayland or software GL fallback: https://answers.ros.org (search for the error string)
 
 ## Troubleshooting
 

@@ -75,6 +75,11 @@
             
             <!-- Topic configuration - must match ros_gz_bridge topics -->
             <topic>d405</topic>
+            <!-- In Gazebo Sim (Harmonic / gz-sensors8), prefer <frame_id>.
+                 Some setups still accept <gz_frame_id>, but it may warn / be ignored.
+                 Keeping both is a pragmatic way to ensure the frame makes it into
+                 sensor message headers for ros_gz_bridge consumers (MoveIt + octomap). -->
+            <frame_id>tool_d405_camera</frame_id>
             <gz_frame_id>tool_d405_camera</gz_frame_id>
             
             <camera name="d405">

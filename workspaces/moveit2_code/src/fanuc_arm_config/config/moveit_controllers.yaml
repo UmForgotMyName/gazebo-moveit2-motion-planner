@@ -1,5 +1,3 @@
-# MoveIt uses this configuration for controller management
-
 moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
 
 moveit_simple_controller_manager:
@@ -8,9 +6,8 @@ moveit_simple_controller_manager:
 
   fanuc_arm_controller:
     type: FollowJointTrajectory
-    # When using gz_ros2_control, the action is at:
-    # /fanuc_arm_controller/follow_joint_trajectory
     action_ns: follow_joint_trajectory
+    default: true
     joints:
       - joint_1
       - joint_2

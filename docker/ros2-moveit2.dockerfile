@@ -77,6 +77,7 @@ RUN apt-get update && \
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
     ros-${ROS_DISTRO}-topic-tools \
+    qtwayland5 \
     build-essential git python3-colcon-common-extensions iputils-ping \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
